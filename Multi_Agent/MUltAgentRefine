@@ -1,0 +1,85 @@
+import os
+from datetime import datetime
+
+import google.generativeai as genai
+
+MODEL_NAME = "gemini-1.5-flash-latest"
+LOG_FILE = "multiagent_conversation_log.txt"
+
+
+def get_model() -> genai.GenerativeModel:
+    """Configure Gemini model using the GOOGLE_API_KEY environment variable."""
+    api_key = os.environ["GOOGLE_API_KEY"]
+    genai.configure(api_key=api_key)
+    return genai.GenerativeModel(MODEL_NAME)
+
+
+model = get_model()
+
+
+def symptom_agent(symptom_text: str) -> str:
+    """Summarise symptom severity and possible conditions."""
+    print("\n🤖 [Symptom Agent]")
+    prompt = (
+        "Classify the severity of this symptom and list possible conditions: "
+        f"{symptom_text}"
+    )
+    response = model.generate_content(prompt)
+    print(response.text)
+    return response.text
+
+
+def scheduler_agent(summary: str) -> str:
+    """Suggest next steps based on the symptom summary."""
+    print("\n🗓️ [Scheduler Agent]")
+    prompt = (
+        "Based on this summary, suggest next steps for the patient: "
+        f"{summary}"
+    )
+    response = model.generate_content(prompt)
+    print(response.text)
+    return response.text
+
+
+def followup_agent() -> str:
+    """Generate clarifying follow‑up questions for the nurse."""
+    print("\n🩺 [Follow-Up Agent]")
+    prompt = (
+        "What follow-up questions should a nurse ask to better understand "
+        "the patient's condition?"
+    )
+    response = model.generate_content(prompt)
+    print(response.text)
+    return response.text
+
+
+def logger_agent(name: str, pid: str, user_text: str, ai_summary: str) -> None:
+    """Append the conversation details to the log file."""
+    print("\n📋 [Logger Agent] Recording information...")
+    log_entry = (
+        f"\nTime: {datetime.now()}"
+        f"\nPatient: {name} (ID: {pid})"
+        f"\nInput: {user_text}"
+        f"\nAI Summary:\n{ai_summary}\n"
+        f"{'=' * 50}\n"
+    )
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(log_entry)
+
+
+def main() -> None:
+    """Run the multi‑agent triage conversation."""
+    name = input("Enter your name: ")
+    pid = input("Enter your Patient ID: ")
+    user_input = input("Please describe your health symptoms: ")
+
+    summary = symptom_agent(user_input)
+    next_steps = scheduler_agent(summary)
+    followups = followup_agent()
+
+    combined_summary = summary + "\n\n" + next_steps + "\n\n" + followups
+    logger_agent(name, pid, user_input, combined_summary)
+
+
+if __name__ == "__main__":
+    main()
