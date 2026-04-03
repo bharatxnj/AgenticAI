@@ -1,0 +1,46 @@
+!pip install -q -U google-genai
+
+import google.genai as genai
+from google.colab import userdata
+
+# 2. Setup API Key from Colab Secrets
+try:
+    GOOGLE_API_KEY = userdata.get('GOOGLE_API_KEY')
+    genai.configure(api_key=GOOGLE_API_KEY)
+except Exception as e:
+    print(f"Error: Ensure 'GOOGLE_API_KEY' is added to Colab Secrets and enabled. Details: {e}")
+
+# 3. Initialize the model using the most reliable current ID
+model = None
+for m in genai.list_models():
+    if 'generateContent' in m.supported_generation_methods:
+        model = genai.GenerativeModel(m.name)
+        print(f"Using model: {m.name}")
+        break
+
+if not model:
+    print("Error: No suitable model found that supports generateContent.")
+
+def simple_agent(prompt):
+    try:
+        if model is None:
+            return "An error occurred: No generative model was initialized."
+
+        response = model.generate_content(prompt)
+
+        # Check if the response contains content
+        if response.candidates and response.candidates[0].content.parts:
+            return response.text
+        else:
+            return f"No response generated. Reason: {response.candidates[0].finish_reason}"
+
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
+
+# 4. Run the prompt
+question = "Can you explain the difference between Agentic AI and AI Agents?"
+answer = simple_agent(question)
+
+print(f"Question: {question}")
+print("-" * 30)
+print(f"Answer: {answer}")
