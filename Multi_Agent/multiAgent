@@ -1,0 +1,80 @@
+# Install the Google Generative AI SDK (only needed in notebooks)
+# !pip install google-generativeai --quiet
+
+import os
+from datetime import datetime
+import google.generativeai as genai
+
+# Configure your API key
+GOOGLE_API_KEY = "YOUR_API_KEY_HERE"
+genai.configure(api_key=GOOGLE_API_KEY)
+
+# Shared Gemini model
+model = genai.GenerativeModel("gemini-1.5-flash-latest")
+
+
+# Agent 1: Symptom Agent
+def symptom_agent(input_text):
+    print("\n🤖 [Symptom Agent]")
+    response = model.generate_content(
+        f"Classify the severity of this symptom and list possible conditions: {input_text}"
+    )
+    print(response.text)
+    return response.text
+
+
+# Agent 2: Scheduler Agent
+def scheduler_agent(symptom_severity_summary):
+    print("\n🗓️ [Scheduler Agent]")
+    response = model.generate_content(
+        f"Based on this summary, suggest next steps for the patient: {symptom_severity_summary}"
+    )
+    print(response.text)
+    return response.text
+
+
+# Agent 3: Follow-Up Agent
+def followup_agent():
+    print("\n🩺 [Follow-Up Agent]")
+    response = model.generate_content(
+        "What follow-up questions should a nurse ask to understand the patient's condition better?"
+    )
+    print(response.text)
+    return response.text
+
+
+# Agent 4: Logger Agent
+def logger_agent(name, pid, input_text, output_text):
+    print("\n📋 [Logger Agent] Recording information...")
+    log_entry = (
+        f"\nTime: {datetime.now()}"
+        f"\nPatient: {name} (ID: {pid})"
+        f"\nInput: {input_text}"
+        f"\nAI Summary: {output_text}"
+        f"\n{'=' * 50}\n"
+    )
+    with open("multiagent_conversation_log.txt", "a") as f:
+        f.write(log_entry)
+
+
+# Get user details
+name = input("Enter your name: ")
+pid = input("Enter your Patient ID: ")
+user_input = input("Please describe your health symptoms: ")
+
+# Agent 1: Symptom Understanding
+summary = symptom_agent(user_input)
+
+# Agent 2: Scheduling or Escalation
+next_steps = scheduler_agent(summary)
+
+# Agent 3: Ask more clarifying questions
+followups = followup_agent()
+
+# Agent 4: Log the conversation
+logger_agent(
+    name,
+    pid,
+    user_input,
+    summary + "\n\n" + next_steps + "\n\n" + followups,
+)
