@@ -1,0 +1,21 @@
+import os
+import google.generativeai as genai
+
+# Step 1: Set API Key
+GOOGLE_API_KEY = "AIzaSyAZtcGJqFGByu4AmTqWF5-cSMRYC44Nkuo"
+genai.configure(api_key=GOOGLE_API_KEY)
+
+# Step 2: Create Gemini model
+model = genai.GenerativeModel("gemini-pro-latest") # Using gemini-pro-latest as identified from list
+chat = model.start_chat()
+
+# Step 3: Take symptom input (using existing user_input from kernel to avoid blocking)
+# user_input = input("Please describe your health symptoms: ")
+
+# Step 4: Use Gemini to analyze and respond
+response = chat.send_message(
+    f"The patient says: {user_input}. Is this a serious medical condition? What should they do next?"
+)
+
+print("AI Advice:")
+print(response.text)
