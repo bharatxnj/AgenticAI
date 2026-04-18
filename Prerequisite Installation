@@ -1,6 +1,9 @@
 Install Python First.
 https://www.python.org/downloads/
 
+Set your path by ticking mark or manual set in environment variable.
+C:\Users\UserNAME\AppData\Local\Python\pythoncore-3.14-64\Scripts
+
 Check you install python or not in Command prompt 
 Open the Command Prompt (press Win + R, type cmd, and hit Enter) and type either of the following commands: 
 python --version
