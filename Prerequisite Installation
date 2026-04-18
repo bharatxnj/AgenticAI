@@ -1,6 +1,11 @@
 Install Python First.
 https://www.python.org/downloads/
 
+Check you install python or not in Command prompt 
+Open the Command Prompt (press Win + R, type cmd, and hit Enter) and type either of the following commands: 
+python --version
+python -V
+
 Gemini:
 pip install google-generativeai langchain-google-genai langchain-community python-dotenv
 pip install streamlit chromadb pypdf docx2txt
