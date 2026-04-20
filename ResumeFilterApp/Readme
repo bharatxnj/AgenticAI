@@ -1,0 +1,157 @@
+# Resume Screening Gemini
+
+An AI-powered resume screening and matching app that compares a candidate's resume with a job description and returns a structured evaluation using Google Gemini, LangChain, and ChromaDB.
+
+## Features
+
+- Upload and read resumes in multiple formats.
+- Split resume content into smaller chunks for better processing.
+- Store resume chunks in a vector database.
+- Perform semantic search using natural language queries.
+- Compare resume content with a job description using Gemini.
+- Generate a structured summary with score, strengths, weaknesses, and recommendation.
+
+## Tech Stack
+
+- **Python 3.12+**
+- **LangChain**
+- **Google Gemini**
+  - `gemini-2.5-pro` for analysis
+  - `models/text-embedding-004` for embeddings
+- **ChromaDB** for vector storage
+- **dotenv** for environment variable management
+- **PyPDFLoader** for PDF resume loading
+- **Docx2txtLoader** for DOCX resume loading
+- **TextLoader** for TXT file loading
+
+## Tools and Libraries Used
+
+### Core Libraries
+- `os` for environment variable handling.
+- `dotenv` to load API keys from `.env`.
+- `langchain_community.document_loaders` for reading resume files.
+- `langchain.text_splitter` for chunking resume text.
+- `langchain_community.vectorstores` for storing embeddings in ChromaDB.
+- `langchain.chains.query_constructor.base` for metadata-aware retrieval.
+- `langchain.retrievers.self_query.base` for self-query retrieval.
+- `langchain_google_genai` for Gemini chat and embedding models.
+
+### External Services
+- **Google Generative AI API** for both text generation and embeddings.
+- **ChromaDB** for persistent resume vector indexing.
+
+## Project Structure
+
+```bash
+resume_screening_gemini/
+│
+├── app.py
+├── resume_processor.py
+├── .env
+├── chroma_store/
+└── README.md
+```
+
+## Environment Setup
+
+Create a `.env` file in the root directory and add your Google API key:
+
+```env
+GOOGLE_API_KEY=your_google_api_key_here
+```
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/resume_screening_gemini.git
+   cd resume_screening_gemini
+   ```
+
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv venv
+   venv\Scripts\activate
+   ```
+
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+## How the Code Works
+
+### 1. Load the Resume
+The `load_resume()` function reads the uploaded resume based on file type:
+- PDF files use `PyPDFLoader`
+- DOCX files use `Docx2txtLoader`
+- TXT files use `TextLoader`
+
+If the file format is unsupported, the code raises an error.
+
+### 2. Split the Resume into Chunks
+The `split_resume()` or chunking logic uses `RecursiveCharacterTextSplitter` to break the resume into smaller overlapping sections. This helps the model process long resumes more effectively.
+
+### 3. Convert Text into Embeddings
+The code uses `GoogleGenerativeAIEmbeddings` with `models/text-embedding-004` to convert each chunk into vector embeddings. These embeddings capture semantic meaning.
+
+### 4. Store Chunks in ChromaDB
+The `store_to_vectorstore()` function stores resume chunks in ChromaDB along with metadata like chunk source names. This makes later retrieval fast and scalable.
+
+### 5. Analyze Resume with Gemini
+The `analyze_resume()` function sends each resume chunk plus the job description to Gemini. The model returns:
+- Suitability score
+- Skills matched
+- Experience relevance
+- Education evaluation
+- Strengths
+- Weaknesses
+- Final recommendation
+
+The results for all chunks are combined into a final analysis.
+
+### 6. Run Self-Query Retrieval
+The `run_self_query()` function uses `SelfQueryRetriever` so the system can interpret the user’s query and fetch the most relevant resume chunks from ChromaDB.
+
+## Example Output
+
+```text
+1. Suitability Score: 82/100
+2. Skills Matched: Python, LangChain, ChromaDB, Gemini API
+3. Experience Relevance: Strong match for AI/ML and retrieval workflows
+4. Education Evaluation: Relevant technical background
+5. Strengths: Good semantic search knowledge, strong Python structure
+6. Weaknesses: Limited domain-specific hiring metrics
+7. Final Recommendation: Recommended for shortlist
+```
+
+## Step-by-Step Flow
+
+1. User uploads a resume file.
+2. The app loads the file using the correct loader.
+3. The resume is split into chunks.
+4. Chunks are embedded using Google Gemini embeddings.
+5. Chunks are saved in ChromaDB.
+6. The job description is passed to Gemini along with the resume text.
+7. Gemini generates an analysis.
+8. The app optionally retrieves the most relevant chunks using self-query search.
+
+## Why This Design
+
+- Chunking avoids token-limit issues.
+- Embeddings improve semantic matching.
+- ChromaDB provides persistent storage.
+- Gemini gives intelligent resume-to-job analysis.
+- Self-query retrieval allows more flexible search over stored resume content.
+
+## Future Improvements
+
+- Add a web UI for uploading resumes.
+- Support more file formats such as `.doc`.
+- Highlight matched skills in the resume text.
+- Export results as PDF or JSON.
+- Add scoring rules based on specific job levels.
+
+## License
+
+This project is for learning and personal use.
