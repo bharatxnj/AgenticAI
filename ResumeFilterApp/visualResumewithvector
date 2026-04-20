@@ -1,0 +1,173 @@
+# ========================= resume_processor.py =========================
+
+import os
+from dotenv import load_dotenv
+
+# Loaders & splitters
+from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+# Vector store
+from langchain_community.vectorstores import Chroma
+
+# Self-query & schema tools
+from langchain.chains.query_constructor.base import AttributeInfo
+from langchain.retrievers.self_query.base import SelfQueryRetriever
+
+# Gemini: Chat + Embeddings
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+
+# ---------------------------------------------------------------------
+# Load environment variables and configure API key
+# ---------------------------------------------------------------------
+load_dotenv()
+
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY  # Ensure the environment variable is available
+
+# ---------------------------------------------------------------------
+# Models
+# ---------------------------------------------------------------------
+# Embedding model used to convert resume chunks into vectors
+embedding = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+
+# Chat model used for analysis
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.3)
+
+# ---------------------------------------------------------------------
+# Load resumes in different formats
+# ---------------------------------------------------------------------
+def load_resume(file_path):
+    """
+    Load a resume file and return LangChain documents.
+    Supports:
+    - PDF
+    - DOCX
+    - TXT
+    """
+    if file_path.endswith(".pdf"):
+        loader = PyPDFLoader(file_path)
+    elif file_path.endswith(".docx"):
+        loader = Docx2txtLoader(file_path)
+    elif file_path.endswith(".txt"):
+        loader = TextLoader(file_path, encoding="utf-8")
+    else:
+        raise ValueError("Unsupported file format.")
+
+    return loader.load()
+
+# ---------------------------------------------------------------------
+# Split resume text into smaller chunks
+# ---------------------------------------------------------------------
+def split_resume(docs):
+    """
+    Split loaded resume documents into manageable chunks
+    so the LLM can process them effectively.
+    """
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=100
+    )
+    return splitter.split_documents(docs)
+
+# ---------------------------------------------------------------------
+# Analyze resume against a job description
+# ---------------------------------------------------------------------
+def analyze_resume(docs, job_description):
+    """
+    Compare resume content with a job description and return:
+    1. Suitability Score (out of 100)
+    2. Skills Matched
+    3. Experience Relevance
+    4. Education Evaluation
+    5. Strengths
+    6. Weaknesses
+    7. Final Recommendation
+    """
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=100
+    )
+    chunks = splitter.split_documents(docs)
+
+    full_analysis = ""
+
+    for chunk in chunks:
+        prompt = f"""
+Compare this resume with the job description. Give:
+
+1. Suitability Score (out of 100)
+2. Skills Matched
+3. Experience Relevance
+4. Education Evaluation
+5. Strengths
+6. Weaknesses
+7. Final Recommendation
+
+Job Description:
+{job_description}
+
+Resume:
+{chunk.page_content}
+"""
+
+        result = llm.invoke(prompt)
+        full_analysis += result.content + "\n\n"
+
+    return full_analysis
+
+# ---------------------------------------------------------------------
+# Store resume chunks in ChromaDB using embeddings
+# ---------------------------------------------------------------------
+def store_to_vectorstore(text_chunks, persist_directory="chroma_store"):
+    """
+    Store text chunks in ChromaDB so they can be retrieved later
+    using semantic search.
+    """
+    texts = [chunk.page_content for chunk in text_chunks]
+    metadatas = [{"source": f"resume_chunk_{i}"} for i in range(len(texts))]
+
+    vectordb = Chroma.from_texts(
+        texts=texts,
+        embedding=embedding,
+        metadatas=metadatas,
+        persist_directory=persist_directory
+    )
+
+    vectordb.persist()
+    return vectordb
+
+# ---------------------------------------------------------------------
+# Use SelfQueryRetriever to interpret user queries and fetch chunks
+# ---------------------------------------------------------------------
+def run_self_query(query, persist_directory="chroma_store"):
+    """
+    Search the resume vector store using a natural language query.
+    This uses metadata-aware retrieval to find relevant chunks.
+    """
+    vectorstore = Chroma(
+        persist_directory=persist_directory,
+        embedding_function=embedding
+    )
+
+    metadata_field_info = [
+        AttributeInfo(
+            name="source",
+            description="where the chunk is from",
+            type="string"
+        )
+    ]
+
+    document_content_description = "This represents a chunk of a resume."
+
+    retriever = SelfQueryRetriever.from_llm(
+        llm=llm,
+        vectorstore=vectorstore,
+        document_contents=document_content_description,
+        metadata_field_info=metadata_field_info,
+        search_type="mmr"
+    )
+
+    return retriever.get_relevant_documents(query)
+
+# ========================= end of file =========================
