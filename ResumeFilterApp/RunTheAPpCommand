@@ -1,0 +1,4 @@
+How to run in command prompt or visual studio command prompt.
+
+streamlit run app.py
+
