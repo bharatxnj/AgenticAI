@@ -2,6 +2,26 @@
 
 An AI-powered resume screening and matching app that compares a candidate's resume with a job description and returns a structured evaluation using Google Gemini, LangChain, and ChromaDB.
 
+Install Python First.
+https://www.python.org/downloads/
+
+Set your path by ticking mark or manual set in environment variable.
+C:\Users\UserNAME\AppData\Local\Python\pythoncore-3.14-64\Scripts
+
+Check you install python or not in Command prompt 
+Open the Command Prompt (press Win + R, type cmd, and hit Enter) and type either of the following commands: 
+python --version
+python -V
+
+Gemini:
+pip install google-generativeai langchain-google-genai langchain-community python-dotenv
+pip install streamlit chromadb pypdf docx2txt
+
+OpenAi:
+pip install streamlit langchain openai chromadb python-dotenv pypdf docx2txt
+streamlit run app.py
+
+
 ## Features
 
 - Upload and read resumes in multiple formats.
